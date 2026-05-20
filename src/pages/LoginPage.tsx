@@ -55,6 +55,25 @@ export default function LoginPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Sign-up branch
+    if (mode === "signup") {
+      if (password.length < 6) {
+        toast.error("Password must be at least 6 characters.");
+        return;
+      }
+      setLoading(true);
+      const { error } = await signUp(email, password);
+      setLoading(false);
+      if (error) {
+        toast.error(error);
+      } else {
+        toast.success("Account created. You can now sign in.");
+        setMode("signin");
+      }
+      return;
+    }
+
     if (lockoutEnd && Date.now() < lockoutEnd) {
       toast.error(`Too many attempts. Try again in ${remainingSeconds}s.`);
       return;
@@ -167,9 +186,14 @@ export default function LoginPage() {
             <Package className="h-6 w-6 text-accent-foreground" />
           </div>
           <CardTitle className="text-2xl">Qazi Enterprises</CardTitle>
-          <p className="text-sm text-muted-foreground">Sign in to your account</p>
+          <p className="text-sm text-muted-foreground">{mode === "signin" ? "Sign in to your account" : "Create a new account"}</p>
+          <p className="text-xs text-muted-foreground mt-1">First account created becomes the admin.</p>
         </CardHeader>
         <CardContent>
+          <div className="mb-4 flex rounded-md border border-border p-1 text-sm">
+            <button type="button" onClick={() => setMode("signin")} className={`flex-1 rounded py-1.5 transition-colors ${mode === "signin" ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:text-foreground"}`}>Sign In</button>
+            <button type="button" onClick={() => setMode("signup")} className={`flex-1 rounded py-1.5 transition-colors ${mode === "signup" ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:text-foreground"}`}>Sign Up</button>
+          </div>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
               <Label>Email</Label>
