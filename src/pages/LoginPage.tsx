@@ -243,8 +243,8 @@ export default function LoginPage() {
                 <span>Account locked. Try again in {remainingSeconds}s.</span>
               </div>
             )}
-            <Button type="submit" className="w-full bg-accent text-accent-foreground hover:bg-accent/90" disabled={loading || (!!lockoutEnd && Date.now() < lockoutEnd)}>
-              {loading ? "Signing in..." : "Sign In"}
+            <Button type="submit" className="w-full bg-accent text-accent-foreground hover:bg-accent/90" disabled={loading || (mode === "signin" && !!lockoutEnd && Date.now() < lockoutEnd)}>
+              {loading ? (mode === "signin" ? "Signing in..." : "Creating account...") : (mode === "signin" ? "Sign In" : "Create Account")}
             </Button>
             <div className="relative my-2">
               <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-border" /></div>
