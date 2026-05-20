@@ -9,6 +9,7 @@ interface AuthContextType {
   loading: boolean;
   isGuest: boolean;
   signIn: (email: string, password: string) => Promise<{ error: string | null }>;
+  signUp: (email: string, password: string) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
   enterGuest: () => void;
   exitGuest: () => void;
@@ -109,6 +110,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { error: error?.message || null };
   };
 
+  const signUp = async (email: string, password: string) => {
+    // The DB trigger handle_new_user assigns admin to the very first user, and 'user' to everyone else.
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: { emailRedirectTo: `${window.location.origin}/` },
+    });
+    return { error: error?.message || null };
+  };
+
   const signOut = async () => {
     try { localStorage.removeItem(GUEST_KEY); } catch {}
     setIsGuest(false);
@@ -132,7 +143,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const effectiveRole: "admin" | "user" | null = user ? role : (isGuest ? "user" : null);
 
   return (
-    <AuthContext.Provider value={{ user: effectiveUser, role: effectiveRole, loading, isGuest: isGuest && !user, signIn, signOut, enterGuest, exitGuest }}>
+    <AuthContext.Provider value={{ user: effectiveUser, role: effectiveRole, loading, isGuest: isGuest && !user, signIn, signUp, signOut, enterGuest, exitGuest }}>
       {children}
     </AuthContext.Provider>
   );
