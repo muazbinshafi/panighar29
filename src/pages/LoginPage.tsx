@@ -22,7 +22,8 @@ async function clearServerAttempts(_email: string) { /* no-op */ }
 
 export default function LoginPage() {
   const savedEmail = (() => { if (typeof localStorage === 'undefined') return ''; try { return localStorage.getItem("remembered_email") || ''; } catch { return ''; } })();
-  const { signIn, enterGuest } = useAuth();
+  const { signIn, signUp, enterGuest } = useAuth();
+  const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState(savedEmail);
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(!!savedEmail);
@@ -54,6 +55,25 @@ export default function LoginPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Sign-up branch
+    if (mode === "signup") {
+      if (password.length < 6) {
+        toast.error("Password must be at least 6 characters.");
+        return;
+      }
+      setLoading(true);
+      const { error } = await signUp(email, password);
+      setLoading(false);
+      if (error) {
+        toast.error(error);
+      } else {
+        toast.success("Account created. You can now sign in.");
+        setMode("signin");
+      }
+      return;
+    }
+
     if (lockoutEnd && Date.now() < lockoutEnd) {
       toast.error(`Too many attempts. Try again in ${remainingSeconds}s.`);
       return;
@@ -166,9 +186,14 @@ export default function LoginPage() {
             <Package className="h-6 w-6 text-accent-foreground" />
           </div>
           <CardTitle className="text-2xl">Qazi Enterprises</CardTitle>
-          <p className="text-sm text-muted-foreground">Sign in to your account</p>
+          <p className="text-sm text-muted-foreground">{mode === "signin" ? "Sign in to your account" : "Create a new account"}</p>
+          <p className="text-xs text-muted-foreground mt-1">First account created becomes the admin.</p>
         </CardHeader>
         <CardContent>
+          <div className="mb-4 flex rounded-md border border-border p-1 text-sm">
+            <button type="button" onClick={() => setMode("signin")} className={`flex-1 rounded py-1.5 transition-colors ${mode === "signin" ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:text-foreground"}`}>Sign In</button>
+            <button type="button" onClick={() => setMode("signup")} className={`flex-1 rounded py-1.5 transition-colors ${mode === "signup" ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:text-foreground"}`}>Sign Up</button>
+          </div>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
               <Label>Email</Label>
@@ -218,8 +243,8 @@ export default function LoginPage() {
                 <span>Account locked. Try again in {remainingSeconds}s.</span>
               </div>
             )}
-            <Button type="submit" className="w-full bg-accent text-accent-foreground hover:bg-accent/90" disabled={loading || (!!lockoutEnd && Date.now() < lockoutEnd)}>
-              {loading ? "Signing in..." : "Sign In"}
+            <Button type="submit" className="w-full bg-accent text-accent-foreground hover:bg-accent/90" disabled={loading || (mode === "signin" && !!lockoutEnd && Date.now() < lockoutEnd)}>
+              {loading ? (mode === "signin" ? "Signing in..." : "Creating account...") : (mode === "signin" ? "Sign In" : "Create Account")}
             </Button>
             <div className="relative my-2">
               <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-border" /></div>

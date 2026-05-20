@@ -1,503 +1,144 @@
-// @ts-nocheck
 import { useState, useEffect } from "react";
-
 import { supabase } from "@/integrations/supabase/customClient";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { useToast } from "@/hooks/use-toast";
-import {
-  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
-} from "@/components/ui/dialog";
-import {
-  Cloud, CloudOff, HardDrive, Clock, CheckCircle2, XCircle, Loader2,
-  RefreshCw, RotateCcw, Timer, FileJson, AlertTriangle, Download, Upload,
-} from "lucide-react";
+import { toast } from "sonner";
+import { Download, Upload, HardDrive, Clock, CheckCircle2, Loader2 } from "lucide-react";
 import { format } from "date-fns";
-import { toast as sonnerToast } from "sonner";
 
-interface BackupRecord {
-  id: string;
-  file_name: string;
-  drive_file_id: string | null;
-  status: string;
-  tables_backed_up: string[] | null;
-  size_bytes: number | null;
-  error_message: string | null;
-  created_at: string;
-}
-
-interface DriveFile {
-  id: string;
-  name: string;
-  size: string;
-  createdTime: string;
-}
-
-// Policy: backups MUST include all bills (sale_transactions) AND their line-item
-// contents (sale_items), plus related returns, so a restored backup reproduces
-// every bill exactly as it was.
-const LOCAL_BACKUP_TABLES = [
+// All tables we back up. Bills + their items + ledger included so a restored backup
+// reproduces every transaction exactly.
+const BACKUP_TABLES = [
   "contacts", "products", "product_categories",
-  // Bills and their full contents
   "sale_transactions", "sale_items", "receivable_payments",
   "returns", "return_items",
-  "purchases", "purchase_items", "expenses", "expense_categories", "ledger_entries",
+  "purchases", "purchase_items",
+  "expenses", "expense_categories", "ledger_entries",
   "daily_summaries", "cash_register", "price_lists", "price_list_items",
-  "audit_logs", "todos", "backup_history", "notifications",
+  "audit_logs", "todos", "notifications",
 ];
+
+const LAST_AUTO_KEY = "qe-last-auto-backup";
+
+export async function runLocalBackup(): Promise<{ payload: any; fileName: string }> {
+  const tables: Record<string, any[]> = {};
+  for (const t of BACKUP_TABLES) {
+    const { data, error } = await (supabase as any).from(t).select("*").limit(50000);
+    if (error) console.warn(`Backup: ${t} failed`, error);
+    tables[t] = data || [];
+  }
+  const payload = { version: 2, created_at: new Date().toISOString(), tables };
+  const fileName = `qazi_backup_${new Date().toISOString().replace(/[:.]/g, "-")}.json`;
+  return { payload, fileName };
+}
+
+function downloadJson(payload: any, fileName: string) {
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = fileName;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
 
 export default function BackupPage() {
   const { user } = useAuth();
-  const { toast } = useToast();
-  const searchParams = new URLSearchParams(typeof window !== "undefined" ? window.location.search : "");
-  const [connected, setConnected] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [backingUp, setBackingUp] = useState(false);
-  const [connecting, setConnecting] = useState(false);
-  const [history, setHistory] = useState<BackupRecord[]>([]);
-  const [localBackingUp, setLocalBackingUp] = useState(false);
-  const [localRestoring, setLocalRestoring] = useState(false);
-
-  // Restore state
-  const [restoreDialogOpen, setRestoreDialogOpen] = useState(false);
-  const [driveFiles, setDriveFiles] = useState<DriveFile[]>([]);
-  const [loadingFiles, setLoadingFiles] = useState(false);
-  const [selectedFile, setSelectedFile] = useState<DriveFile | null>(null);
+  const [busy, setBusy] = useState(false);
   const [restoring, setRestoring] = useState(false);
-  const [confirmRestore, setConfirmRestore] = useState(false);
+  const [lastAuto, setLastAuto] = useState<string | null>(null);
 
   useEffect(() => {
-    checkConnection();
-    loadHistory();
-    if (searchParams.get("connected") === "true") {
-      toast({ title: "Google Drive Connected!", description: "You can now create backups." });
-    }
+    setLastAuto(localStorage.getItem(LAST_AUTO_KEY));
   }, []);
 
-  async function getAuthHeaders() {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session?.access_token) throw new Error("Please log in again to continue.");
-    return { Authorization: `Bearer ${session.access_token}` };
-  }
-
-  async function checkConnection() {
-    setLoading(true);
+  const handleManualBackup = async () => {
+    setBusy(true);
     try {
-      const res = await supabase.functions.invoke("google-drive-auth", {
-        headers: await getAuthHeaders(),
-        body: { action: "status" },
+      const { payload, fileName } = await runLocalBackup();
+      downloadJson(payload, fileName);
+      toast.success("Backup downloaded");
+      await (supabase as any).from("backup_history").insert({
+        user_id: user?.id, file_name: fileName, status: "completed", type: "local",
       });
-      setConnected(!!res.data?.connected);
-    } catch {
-      setConnected(false);
-    }
-    setLoading(false);
-  }
+    } catch (e: any) {
+      toast.error(`Backup failed: ${e?.message || e}`);
+    } finally { setBusy(false); }
+  };
 
-  async function loadHistory() {
-    try {
-      const res = await supabase.functions.invoke("google-drive-backup", {
-        headers: await getAuthHeaders(),
-        body: { action: "history" },
-      });
-      setHistory((res.data?.history || []) as BackupRecord[]);
-    } catch {
-      setHistory([]);
-    }
-  }
-
-  async function connectDrive() {
-    setConnecting(true);
-    try {
-      const res = await supabase.functions.invoke("google-drive-auth", {
-        headers: await getAuthHeaders(),
-        body: { action: "connect" },
-      });
-      if (res.error) throw res.error;
-      if (res.data?.url) {
-        window.location.href = res.data.url;
-      } else {
-        toast({ title: "Error", description: res.data?.error || "Failed to get auth URL", variant: "destructive" });
-      }
-    } catch (err: any) {
-      toast({ title: "Error", description: err.message, variant: "destructive" });
-    }
-    setConnecting(false);
-  }
-
-  async function runBackup() {
-    setBackingUp(true);
-    try {
-      const res = await supabase.functions.invoke("google-drive-backup", {
-        headers: await getAuthHeaders(),
-      });
-      if (res.error) throw res.error;
-      if (res.data?.success) {
-        toast({ title: "Backup Complete!", description: `${res.data.tables_count} tables backed up to Google Drive.` });
-        loadHistory();
-      } else {
-        toast({ title: "Backup Failed", description: res.data?.error || "Unknown error", variant: "destructive" });
-      }
-    } catch (err: any) {
-      toast({ title: "Error", description: err.message, variant: "destructive" });
-    }
-    setBackingUp(false);
-  }
-
-  async function disconnectDrive() {
-    await supabase.functions.invoke("google-drive-auth", {
-      headers: await getAuthHeaders(),
-      body: { action: "disconnect" },
-    });
-    setConnected(false);
-    setHistory([]);
-    toast({ title: "Disconnected", description: "Google Drive has been disconnected." });
-  }
-
-  async function openRestoreDialog() {
-    setRestoreDialogOpen(true);
-    setLoadingFiles(true);
-    setSelectedFile(null);
-    setConfirmRestore(false);
-    try {
-      const res = await supabase.functions.invoke("google-drive-restore", {
-        headers: await getAuthHeaders(),
-        body: { action: "list" },
-      });
-      if (res.error) throw res.error;
-      if (res.data?.error) throw new Error(res.data.error);
-      setDriveFiles(res.data?.files || []);
-    } catch (err: any) {
-      toast({ title: "Error", description: err.message, variant: "destructive" });
-    }
-    setLoadingFiles(false);
-  }
-
-  async function executeRestore() {
-    if (!selectedFile) return;
+  const handleRestore = async (file: File) => {
     setRestoring(true);
     try {
-      const res = await supabase.functions.invoke("google-drive-restore", {
-        headers: await getAuthHeaders(),
-        body: { action: "restore", file_id: selectedFile.id },
-      });
-      if (res.error) throw res.error;
-      if (res.data?.success) {
-        toast({
-          title: "Restore Complete!",
-          description: `${res.data.tables_restored} tables restored with ${res.data.total_records} records.`,
-        });
-        setRestoreDialogOpen(false);
-      } else {
-        toast({ title: "Restore Failed", description: res.data?.error || "Unknown error", variant: "destructive" });
+      const txt = await file.text();
+      const data = JSON.parse(txt);
+      if (!data?.tables) throw new Error("Invalid backup file");
+      let totalRows = 0;
+      // Insert in safe FK order
+      const order = ["product_categories", "expense_categories", "contacts", "products",
+        "price_lists", "price_list_items",
+        "sale_transactions", "sale_items", "receivable_payments",
+        "returns", "return_items", "purchases", "purchase_items",
+        "expenses", "ledger_entries", "daily_summaries", "cash_register",
+        "audit_logs", "todos", "notifications"];
+      for (const t of order) {
+        const rows = data.tables[t];
+        if (!rows?.length) continue;
+        const chunks = [];
+        for (let i = 0; i < rows.length; i += 200) chunks.push(rows.slice(i, i + 200));
+        for (const c of chunks) {
+          const { error } = await (supabase as any).from(t).upsert(c, { onConflict: "id" });
+          if (error) console.warn(`Restore ${t}:`, error.message);
+          else totalRows += c.length;
+        }
       }
-    } catch (err: any) {
-      toast({ title: "Error", description: err.message, variant: "destructive" });
-    }
-    setRestoring(false);
-  }
-
-  // Local Backup - download all tables as JSON
-  async function localBackup() {
-    setLocalBackingUp(true);
-    try {
-      const res = await supabase.functions.invoke("google-drive-backup", {
-        headers: await getAuthHeaders(),
-        body: { action: "dump" },
-      });
-      if (res.error) throw res.error;
-      if (res.data?.error) throw new Error(res.data.error);
-      const blob = new Blob([JSON.stringify(res.data.payload, null, 2)], { type: "application/json" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `qazi_backup_${format(new Date(), "yyyy-MM-dd_HHmmss")}.json`;
-      a.click();
-      URL.revokeObjectURL(url);
-      sonnerToast.success("Local backup downloaded successfully!");
-    } catch (err: any) {
-      sonnerToast.error("Failed to create local backup: " + err.message);
-    }
-    setLocalBackingUp(false);
-  }
-
-  // Local Restore - upload JSON file
-  async function localRestore() {
-    const input = document.createElement("input");
-    input.type = "file";
-    input.accept = ".json";
-    input.onchange = async (e) => {
-      const file = (e.target as HTMLInputElement).files?.[0];
-      if (!file) return;
-      setLocalRestoring(true);
-      try {
-        const text = await file.text();
-        const data = JSON.parse(text);
-        if (!data.tables) throw new Error("Invalid backup format");
-
-        let totalRecords = 0;
-        let tablesRestored = 0;
-
-        const res = await supabase.functions.invoke("google-drive-restore", {
-          headers: await getAuthHeaders(),
-          body: { action: "restorePayload", payload: data },
-        });
-        if (res.error) throw res.error;
-        if (res.data?.error) throw new Error(res.data.error);
-        totalRecords = res.data.total_records || 0;
-        tablesRestored = res.data.tables_restored || 0;
-
-        sonnerToast.success(`Restored ${tablesRestored} tables with ${totalRecords} records from local backup!`);
-      } catch (err: any) {
-        sonnerToast.error("Failed to restore: " + err.message);
-      }
-      setLocalRestoring(false);
-    };
-    input.click();
-  }
-
-  function formatBytes(bytes: number | string | null) {
-    const n = typeof bytes === "string" ? parseInt(bytes) : bytes;
-    if (!n) return "—";
-    if (n < 1024) return `${n} B`;
-    if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
-    return `${(n / (1024 * 1024)).toFixed(1)} MB`;
-  }
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-      </div>
-    );
-  }
+      toast.success(`Restored ${totalRows} rows`);
+    } catch (e: any) {
+      toast.error(`Restore failed: ${e?.message || e}`);
+    } finally { setRestoring(false); }
+  };
 
   return (
-    <div className="space-y-6">
+    <div className="container mx-auto py-6 space-y-6 max-w-4xl">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Backup & Restore</h1>
-        <p className="text-muted-foreground">Keep your business data safe with cloud or local backups.</p>
+        <h1 className="text-2xl font-bold">Backup & Restore</h1>
+        <p className="text-muted-foreground text-sm">Local JSON backups. A daily backup downloads automatically when you open the app once per day.</p>
       </div>
 
-      {/* Local Backup */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <HardDrive className="h-5 w-5 text-primary" />
-            Local Backup
-          </CardTitle>
-          <CardDescription>Download or restore your data as a JSON file on your device.</CardDescription>
+          <CardTitle className="flex items-center gap-2"><HardDrive className="h-5 w-5" /> Manual Backup</CardTitle>
+          <CardDescription>Downloads a full JSON snapshot to your device.</CardDescription>
         </CardHeader>
-        <CardContent className="flex flex-wrap gap-3">
-          <Button onClick={localBackup} disabled={localBackingUp} variant="default">
-            {localBackingUp ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
-            {localBackingUp ? "Downloading..." : "Download Backup"}
+        <CardContent className="space-y-3">
+          <Button onClick={handleManualBackup} disabled={busy}>
+            {busy ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Download className="h-4 w-4 mr-2" />}
+            Download Backup Now
           </Button>
-          <Button onClick={localRestore} disabled={localRestoring} variant="secondary">
-            {localRestoring ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
-            {localRestoring ? "Restoring..." : "Restore from File"}
-          </Button>
-        </CardContent>
-      </Card>
-
-      {/* Google Drive Connection */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            {connected ? <Cloud className="h-5 w-5 text-primary" /> : <CloudOff className="h-5 w-5 text-muted-foreground" />}
-            Google Drive Backup
-          </CardTitle>
-          <CardDescription>
-            {connected
-              ? "Connected. Automatic backups run daily at midnight."
-              : "Connect your Google account to enable cloud backups."}
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="flex flex-wrap gap-3">
-          {connected ? (
-            <>
-              <Button onClick={runBackup} disabled={backingUp}>
-                {backingUp ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Cloud className="mr-2 h-4 w-4" />}
-                {backingUp ? "Backing up..." : "Backup to Drive"}
-              </Button>
-              <Button variant="secondary" onClick={openRestoreDialog}>
-                <RotateCcw className="mr-2 h-4 w-4" /> Restore from Drive
-              </Button>
-              <Button variant="outline" onClick={disconnectDrive}>
-                Disconnect
-              </Button>
-            </>
-          ) : (
-            <Button onClick={connectDrive} disabled={connecting}>
-              {connecting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Cloud className="mr-2 h-4 w-4" />}
-              Connect Google Drive
-            </Button>
+          {lastAuto && (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Clock className="h-4 w-4" /> Last automatic backup: {format(new Date(lastAuto), "PPpp")}
+              <Badge variant="secondary"><CheckCircle2 className="h-3 w-3 mr-1" />Auto</Badge>
+            </div>
           )}
         </CardContent>
       </Card>
 
-      {/* Auto-Backup Status */}
-      {connected && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <Timer className="h-5 w-5" />
-              Automatic Daily Backup
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center gap-3">
-              <Badge variant="default" className="gap-1">
-                <CheckCircle2 className="h-3 w-3" /> Active
-              </Badge>
-              <span className="text-sm text-muted-foreground">
-                Runs every day at <strong>12:00 AM (midnight UTC)</strong>.
-              </span>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Backup History */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Clock className="h-5 w-5" />
-            Backup History
-          </CardTitle>
-          <CardDescription>Your recent backups stored in QaziEnterprisesBackups folder.</CardDescription>
+          <CardTitle className="flex items-center gap-2"><Upload className="h-5 w-5" /> Restore from Backup</CardTitle>
+          <CardDescription>Upload a previously downloaded backup file. Existing rows with the same id will be overwritten.</CardDescription>
         </CardHeader>
         <CardContent>
-          {history.length === 0 ? (
-            <p className="text-sm text-muted-foreground py-4 text-center">No backups yet.</p>
-          ) : (
-            <div className="space-y-3">
-              {history.map((b) => (
-                <div key={b.id} className="flex items-center justify-between rounded-lg border p-3">
-                  <div className="flex items-center gap-3">
-                    {b.status === "completed" ? (
-                      <CheckCircle2 className="h-5 w-5 text-primary shrink-0" />
-                    ) : (
-                      <XCircle className="h-5 w-5 text-destructive shrink-0" />
-                    )}
-                    <div>
-                      <p className="text-sm font-medium">{b.file_name}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {format(new Date(b.created_at), "MMM d, yyyy h:mm a")} · {b.tables_backed_up?.length || 0} tables · {formatBytes(b.size_bytes)}
-                      </p>
-                    </div>
-                  </div>
-                  <Badge variant={b.status === "completed" ? "default" : "destructive"}>
-                    {b.status}
-                  </Badge>
-                </div>
-              ))}
-            </div>
-          )}
-          {history.length > 0 && (
-            <Button variant="ghost" size="sm" className="mt-3 w-full" onClick={loadHistory}>
-              <RefreshCw className="mr-2 h-3 w-3" /> Refresh
-            </Button>
-          )}
+          <input
+            type="file" accept="application/json"
+            disabled={restoring}
+            onChange={(e) => { const f = e.target.files?.[0]; if (f) handleRestore(f); }}
+            className="block w-full text-sm file:mr-3 file:rounded-md file:border-0 file:bg-primary file:px-3 file:py-2 file:text-primary-foreground"
+          />
+          {restoring && <p className="mt-2 text-sm text-muted-foreground flex items-center gap-2"><Loader2 className="h-4 w-4 animate-spin" /> Restoring…</p>}
         </CardContent>
       </Card>
-
-      {/* What gets backed up */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">What gets backed up?</CardTitle>
-          <CardDescription>All your business data across these tables.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-sm text-muted-foreground">
-            {["Contacts", "Products", "Categories", "Bills (Sales)", "Bill Items", "Receivable Payments", "Returns", "Return Items", "Purchases", "Purchase Items", "Expenses", "Ledger Entries", "Daily Summaries", "Cash Register", "Price Lists", "Price List Items", "Audit Logs", "Todos", "Backup History", "Notifications"].map((t) => (
-              <div key={t} className="flex items-center gap-1.5">
-                <CheckCircle2 className="h-3.5 w-3.5 text-primary" /> {t}
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Restore Dialog */}
-      <Dialog open={restoreDialogOpen} onOpenChange={setRestoreDialogOpen}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <RotateCcw className="h-5 w-5" /> Restore from Google Drive
-            </DialogTitle>
-            <DialogDescription>
-              Select a backup file from Google Drive to restore your data.
-            </DialogDescription>
-          </DialogHeader>
-
-          {loadingFiles ? (
-            <div className="flex items-center justify-center py-8">
-              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-            </div>
-          ) : driveFiles.length === 0 ? (
-            <p className="text-sm text-muted-foreground py-4 text-center">No backup files found.</p>
-          ) : !confirmRestore ? (
-            <div className="space-y-2 max-h-80 overflow-y-auto">
-              {driveFiles.map((f) => (
-                <button
-                  key={f.id}
-                  onClick={() => setSelectedFile(f)}
-                  className={`w-full flex items-center gap-3 rounded-lg border p-3 text-left transition-colors hover:bg-accent ${
-                    selectedFile?.id === f.id ? "border-primary bg-accent" : ""
-                  }`}
-                >
-                  <FileJson className="h-5 w-5 text-primary shrink-0" />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">{f.name}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {format(new Date(f.createdTime), "MMM d, yyyy h:mm a")} · {formatBytes(f.size)}
-                    </p>
-                  </div>
-                  {selectedFile?.id === f.id && (
-                    <CheckCircle2 className="h-4 w-4 text-primary shrink-0" />
-                  )}
-                </button>
-              ))}
-            </div>
-          ) : (
-            <div className="space-y-4 py-2">
-              <div className="flex items-start gap-3 rounded-lg border border-destructive/30 bg-destructive/5 p-4">
-                <AlertTriangle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
-                <div>
-                  <p className="text-sm font-semibold">This will replace ALL current data</p>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Restoring from <strong>{selectedFile?.name}</strong> will delete existing records and replace them with the backup data. This cannot be undone.
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
-
-          <DialogFooter>
-            {!confirmRestore ? (
-              <Button
-                onClick={() => setConfirmRestore(true)}
-                disabled={!selectedFile}
-              >
-                Next
-              </Button>
-            ) : (
-              <div className="flex gap-2 w-full justify-end">
-                <Button variant="outline" onClick={() => setConfirmRestore(false)}>
-                  Back
-                </Button>
-                <Button variant="destructive" onClick={executeRestore} disabled={restoring}>
-                  {restoring ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RotateCcw className="mr-2 h-4 w-4" />}
-                  {restoring ? "Restoring..." : "Confirm Restore"}
-                </Button>
-              </div>
-            )}
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

@@ -1,13 +1,4 @@
-project_id = "cfcyxhopqgtisggdcvnb"
+project_id = "mwtbxhcdzkihjcyorhwd"
 
-[functions.manage-users]
-verify_jwt = true
-
-[functions.google-drive-auth]
-verify_jwt = false
-
-[functions.google-drive-backup]
-verify_jwt = true
-
-[functions.google-drive-restore]
+[functions.scan-bill]
 verify_jwt = true
