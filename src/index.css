@@ -1,0 +1,515 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+  PaniGhar / Qazi Enterprises — Premium SaaS design system.
+  Inspired by Linear / Stripe / Vercel.
+  All colors are HSL (Tailwind v3 token format).
+*/
+
+@layer base {
+  :root {
+    --radius: 0.625rem;
+
+    /* Surfaces — clean white + blue */
+    --background: 0 0% 100%;
+    --foreground: 217 60% 12%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 217 60% 12%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 217 60% 12%;
+
+    /* Brand — blue scale */
+    --primary: 217 91% 50%;
+    --primary-foreground: 0 0% 100%;
+    --primary-glow: 210 100% 65%;
+
+    --secondary: 214 100% 97%;
+    --secondary-foreground: 217 70% 22%;
+
+    --muted: 214 60% 96%;
+    --muted-foreground: 217 20% 45%;
+
+    --accent: 199 95% 48%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+
+    --success: 152 65% 40%;
+    --success-foreground: 0 0% 100%;
+
+    --info: 217 91% 55%;
+    --info-foreground: 0 0% 100%;
+
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 100%;
+
+    --border: 214 32% 91%;
+    --input: 214 32% 91%;
+    --ring: 217 91% 50%;
+
+    --chart-1: 217 91% 50%;
+    --chart-2: 199 95% 48%;
+    --chart-3: 210 100% 65%;
+    --chart-4: 224 76% 38%;
+    --chart-5: 190 90% 55%;
+
+    /* Sidebar — deep blue */
+    --sidebar-background: 222 47% 14%;
+    --sidebar-foreground: 214 32% 88%;
+    --sidebar-primary: 217 91% 60%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 222 40% 20%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 222 35% 24%;
+    --sidebar-ring: 217 91% 60%;
+    --sidebar-muted: 214 20% 65%;
+
+    /* Premium blue gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(217 91% 50%) 0%, hsl(199 95% 55%) 100%);
+    --gradient-hero: linear-gradient(135deg, hsl(217 91% 45%) 0%, hsl(222 47% 20%) 100%);
+    --gradient-subtle: linear-gradient(180deg, hsl(0 0% 100%) 0%, hsl(214 60% 97%) 100%);
+    --gradient-card: linear-gradient(180deg, hsl(0 0% 100%) 0%, hsl(214 60% 99%) 100%);
+
+    /* Layered shadows */
+    --shadow-xs: 0 1px 2px 0 hsl(217 60% 20% / 0.04);
+    --shadow-sm: 0 1px 3px 0 hsl(217 60% 20% / 0.06), 0 1px 2px -1px hsl(217 60% 20% / 0.04);
+    --shadow-md: 0 4px 6px -1px hsl(217 60% 20% / 0.06), 0 2px 4px -2px hsl(217 60% 20% / 0.04);
+    --shadow-lg: 0 10px 15px -3px hsl(217 60% 20% / 0.08), 0 4px 6px -4px hsl(217 60% 20% / 0.04);
+    --shadow-xl: 0 20px 25px -5px hsl(217 60% 20% / 0.10), 0 8px 10px -6px hsl(217 60% 20% / 0.04);
+    --shadow-glow: 0 0 0 1px hsl(217 91% 50% / 0.12), 0 8px 24px -4px hsl(217 91% 50% / 0.22);
+    --shadow-card: 0 1px 3px hsl(217 60% 20% / 0.04), 0 1px 2px hsl(217 60% 20% / 0.03);
+
+    /* Motion */
+    --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+    --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .dark {
+    --background: 222 47% 8%;
+    --foreground: 214 32% 95%;
+
+    --card: 222 44% 11%;
+    --card-foreground: 214 32% 95%;
+
+    --popover: 222 44% 11%;
+    --popover-foreground: 214 32% 95%;
+
+    --primary: 217 91% 60%;
+    --primary-foreground: 0 0% 100%;
+    --primary-glow: 210 100% 70%;
+
+    --secondary: 222 40% 16%;
+    --secondary-foreground: 214 32% 95%;
+
+    --muted: 222 40% 16%;
+    --muted-foreground: 214 20% 65%;
+
+    --accent: 199 95% 55%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 65% 50%;
+    --destructive-foreground: 0 0% 100%;
+
+    --success: 152 60% 45%;
+    --success-foreground: 0 0% 100%;
+
+    --info: 217 91% 60%;
+    --info-foreground: 0 0% 100%;
+
+    --warning: 38 92% 55%;
+    --warning-foreground: 0 0% 100%;
+
+    --border: 222 35% 20%;
+    --input: 222 35% 20%;
+    --ring: 217 91% 60%;
+
+    --sidebar-background: 222 50% 6%;
+    --sidebar-foreground: 214 32% 85%;
+    --sidebar-primary: 217 91% 60%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 222 44% 11%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 222 38% 16%;
+    --sidebar-ring: 217 91% 60%;
+    --sidebar-muted: 214 20% 60%;
+
+    --gradient-subtle: linear-gradient(180deg, hsl(222 47% 9%) 0%, hsl(222 47% 7%) 100%);
+    --gradient-card: linear-gradient(180deg, hsl(222 44% 12%) 0%, hsl(222 44% 10%) 100%);
+
+    --shadow-xs: 0 1px 2px 0 hsl(0 0% 0% / 0.30);
+    --shadow-sm: 0 1px 3px 0 hsl(0 0% 0% / 0.35), 0 1px 2px -1px hsl(0 0% 0% / 0.30);
+    --shadow-md: 0 4px 6px -1px hsl(0 0% 0% / 0.40), 0 2px 4px -2px hsl(0 0% 0% / 0.30);
+    --shadow-lg: 0 10px 15px -3px hsl(0 0% 0% / 0.45), 0 4px 6px -4px hsl(0 0% 0% / 0.30);
+    --shadow-xl: 0 20px 25px -5px hsl(0 0% 0% / 0.50), 0 8px 10px -6px hsl(0 0% 0% / 0.30);
+    --shadow-glow: 0 0 0 1px hsl(217 91% 60% / 0.22), 0 8px 24px -4px hsl(217 91% 60% / 0.35);
+    --shadow-card: 0 1px 3px hsl(0 0% 0% / 0.40);
+  }
+
+  .compact-mode { --spacing-scale: 0.75; }
+  .compact-mode body { line-height: 1.4; }
+  .compact-mode .p-6 { padding: 1rem; }
+  .compact-mode .p-5 { padding: 0.75rem; }
+  .compact-mode .p-4 { padding: 0.625rem; }
+  .compact-mode .gap-4 { gap: 0.625rem; }
+  .compact-mode .gap-6 { gap: 1rem; }
+  .compact-mode .space-y-6 > * + * { margin-top: 1rem; }
+  .compact-mode .space-y-4 > * + * { margin-top: 0.625rem; }
+
+  .no-animations * {
+    animation-duration: 0s !important;
+    transition-duration: 0s !important;
+  }
+}
+
+@layer base {
+  * { @apply border-border; }
+  html:not(.system-cursor) * { cursor: none !important; }
+ html { font-family: 'Inter', system-ui, -apple-system, sans-serif; scroll-behavior: smooth; }
+ section[id] { scroll-margin-top: 80px; }
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11", "ss01", "ss03";
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    letter-spacing: -0.02em;
+    font-feature-settings: "ss01", "ss03", "cv11";
+  }
+  h1 { letter-spacing: -0.03em; }
+  code, pre, kbd { font-family: 'JetBrains Mono', ui-monospace, monospace; }
+
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb {
+    background: hsl(var(--muted-foreground) / 0.25);
+    border-radius: 4px;
+    border: 2px solid transparent;
+    background-clip: content-box;
+  }
+  ::-webkit-scrollbar-thumb:hover { background: hsl(var(--muted-foreground) / 0.45); background-clip: content-box; border: 2px solid transparent; }
+
+  /* Premium focus rings */
+  *:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px hsl(var(--background)), 0 0 0 4px hsl(var(--ring) / 0.5);
+    border-radius: calc(var(--radius) - 2px);
+    transition: box-shadow 0.15s var(--ease-out);
+  }
+
+  /* Selection */
+  ::selection { background: hsl(var(--primary) / 0.20); color: hsl(var(--foreground)); }
+}
+
+/* Card style variants */
+.card-flat :is([class*="card"], .stat-card) { box-shadow: none !important; border: none !important; }
+.card-bordered :is([class*="card"], .stat-card) { box-shadow: none !important; }
+.card-elevated :is([class*="card"], .stat-card) { box-shadow: var(--shadow-lg) !important; }
+.card-glass :is([class*="card"], .stat-card) {
+  background: hsl(var(--card) / 0.70) !important;
+  backdrop-filter: blur(16px) saturate(180%) !important;
+  border: 1px solid hsl(var(--border) / 0.6) !important;
+}
+
+/* Table density */
+.table-compact table td, .table-compact table th { padding: 0.375rem 0.625rem; font-size: 0.8125rem; }
+.table-comfortable table td, .table-comfortable table th { padding: 0.75rem 1rem; }
+.table-spacious table td, .table-spacious table th { padding: 1rem 1.25rem; }
+
+.glass-enabled .stat-card { backdrop-filter: blur(12px) saturate(180%); }
+
+.page-transitions main > div { animation: fadeSlideIn 0.4s var(--ease-out); }
+@keyframes fadeSlideIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@layer components {
+  /* Premium stat card */
+  .stat-card {
+    @apply relative overflow-hidden rounded-xl border bg-card transition-all duration-300;
+    background: var(--gradient-card);
+    box-shadow: var(--shadow-card);
+  }
+  .stat-card::after {
+    content: '';
+    @apply absolute inset-x-0 top-0 h-px;
+    background: linear-gradient(90deg, transparent, hsl(var(--border)), transparent);
+  }
+  .stat-card:hover {
+    box-shadow: var(--shadow-md);
+    transform: translateY(-1px);
+    border-color: hsl(var(--border) / 1);
+  }
+  .stat-card-glow {
+    @apply absolute -top-12 -right-12 h-32 w-32 rounded-full opacity-15;
+    filter: blur(48px);
+  }
+  .stat-card-icon {
+    @apply flex h-10 w-10 items-center justify-center rounded-xl;
+    box-shadow: inset 0 0 0 1px hsl(var(--border) / 0.5);
+  }
+
+  /* Hero / dashboard greeting */
+  .dashboard-greeting {
+    @apply relative overflow-hidden rounded-2xl border px-8 py-7 text-primary-foreground;
+    background: var(--gradient-hero);
+    box-shadow: var(--shadow-lg);
+  }
+  .dashboard-greeting::before {
+    content: '';
+    @apply absolute inset-0 pointer-events-none;
+    background:
+      radial-gradient(circle at 85% 15%, hsl(var(--accent) / 0.20) 0%, transparent 50%),
+      radial-gradient(circle at 15% 85%, hsl(var(--primary-glow) / 0.15) 0%, transparent 50%);
+  }
+  .dashboard-greeting::after {
+    content: '';
+    @apply absolute inset-0 pointer-events-none opacity-30;
+    background-image:
+      linear-gradient(hsl(0 0% 100% / 0.03) 1px, transparent 1px),
+      linear-gradient(90deg, hsl(0 0% 100% / 0.03) 1px, transparent 1px);
+    background-size: 32px 32px;
+  }
+
+  /* Glass card */
+  .glass-card {
+    @apply rounded-xl border transition-all duration-300;
+    background: hsl(var(--card) / 0.75);
+    backdrop-filter: blur(12px) saturate(180%);
+    box-shadow: var(--shadow-sm);
+  }
+  .glass-card:hover { box-shadow: var(--shadow-md); }
+
+  /* Profit badges */
+  .profit-badge-positive {
+    background-color: hsl(var(--success) / 0.12);
+    color: hsl(var(--success));
+    border: 1px solid hsl(var(--success) / 0.25);
+  }
+  .profit-badge-negative {
+    background-color: hsl(var(--destructive) / 0.12);
+    color: hsl(var(--destructive));
+    border: 1px solid hsl(var(--destructive) / 0.25);
+  }
+
+  /* Quick action card */
+  .quick-action {
+    @apply flex items-center gap-3 rounded-xl border bg-card p-4 cursor-pointer transition-all duration-300 relative overflow-hidden;
+    box-shadow: var(--shadow-xs);
+  }
+  .quick-action::before {
+    content: '';
+    @apply absolute inset-0 opacity-0 transition-opacity duration-300 pointer-events-none;
+    background: linear-gradient(135deg, hsl(var(--primary) / 0.06), transparent 60%);
+  }
+  .quick-action:hover {
+    box-shadow: var(--shadow-md);
+    transform: translateY(-2px);
+    border-color: hsl(var(--primary) / 0.30);
+  }
+  .quick-action:hover::before { opacity: 1; }
+
+  /* POS header */
+  .pos-header {
+    @apply relative overflow-hidden rounded-2xl border px-6 py-5 text-primary-foreground;
+    background: var(--gradient-hero);
+    box-shadow: var(--shadow-lg);
+  }
+  .pos-header::before {
+    content: '';
+    @apply absolute inset-0 pointer-events-none;
+    background: radial-gradient(circle at 90% 30%, hsl(var(--accent) / 0.22) 0%, transparent 55%);
+  }
+
+  /* POS product card */
+  .pos-product-card {
+    @apply rounded-xl border bg-card overflow-hidden cursor-pointer transition-all duration-300;
+    box-shadow: var(--shadow-xs);
+  }
+  .pos-product-card:hover {
+    box-shadow: var(--shadow-md);
+    border-color: hsl(var(--primary) / 0.40);
+    transform: translateY(-2px);
+  }
+
+  /* Premium gradient text */
+  .text-gradient {
+    @apply bg-clip-text text-transparent;
+    background-image: var(--gradient-primary);
+  }
+
+  /* Premium primary button override (applies on top of variant default) */
+  .btn-premium {
+    background: var(--gradient-primary);
+    box-shadow: var(--shadow-sm), inset 0 1px 0 0 hsl(0 0% 100% / 0.15);
+    transition: all 0.2s var(--ease-out);
+  }
+  .btn-premium:hover {
+    box-shadow: var(--shadow-glow), inset 0 1px 0 0 hsl(0 0% 100% / 0.20);
+    transform: translateY(-1px);
+  }
+
+  /* Section divider */
+  .section-divider {
+    @apply h-px w-full;
+    background: linear-gradient(90deg, transparent, hsl(var(--border)), transparent);
+  }
+
+  /* Skeleton shimmer */
+  .skeleton-shimmer {
+    background: linear-gradient(90deg,
+      hsl(var(--muted)) 0%,
+      hsl(var(--muted-foreground) / 0.08) 50%,
+      hsl(var(--muted)) 100%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+  }
+}
+
+/* ============== Public Home Page (qe-home) — locked blue theme + motion ============== */
+.qe-home { color-scheme: light; overflow-x: hidden; }
+.qe-home.dark, .dark .qe-home { color-scheme: light; }
+.qe-home img, .qe-home video, .qe-home canvas, .qe-home svg { max-width: 100%; height: auto; }
+.qe-home * { min-width: 0; }
+
+/* Responsive scale for very small phones */
+@media (max-width: 380px) {
+  .qe-home h1 { font-size: clamp(2rem, 9vw, 2.75rem) !important; line-height: 1.05 !important; }
+  .qe-home h2 { font-size: clamp(1.5rem, 6vw, 2rem) !important; }
+  .qe-home .max-w-7xl { padding-left: 1rem !important; padding-right: 1rem !important; }
+}
+/* Tablet tuning */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .qe-home h1 { font-size: clamp(3rem, 6.5vw, 4.5rem) !important; }
+}
+/* Ultrawide cap */
+@media (min-width: 1920px) {
+  .qe-home .max-w-7xl { max-width: 96rem; }
+}
+
+/* Smooth, attractive default transitions for interactive elements on the home page */
+.qe-home a,
+.qe-home button,
+.qe-home [role="button"],
+.qe-home .card,
+.qe-home [class*="rounded"] img {
+  transition: transform 0.35s var(--ease-out), box-shadow 0.35s var(--ease-out),
+              background-color 0.25s var(--ease-out), color 0.25s var(--ease-out),
+              border-color 0.25s var(--ease-out), opacity 0.25s var(--ease-out);
+}
+
+/* Lift effect on cards */
+.qe-home .group:hover img,
+.qe-home a:hover img {
+  transform: scale(1.04);
+}
+
+/* Section entrance animation */
+.qe-home section {
+  animation: qeSectionIn 0.7s var(--ease-out) both;
+}
+@keyframes qeSectionIn {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Subtle floating accent for hero glows */
+.qe-home #hero .blur-\[120px\] { animation: qeFloat 8s ease-in-out infinite alternate; }
+@keyframes qeFloat {
+  from { transform: translate3d(0,0,0) scale(1); }
+  to   { transform: translate3d(10px,-12px,0) scale(1.06); }
+}
+
+/* ============== Global motion polish (whole app, including dashboard) ============== */
+@media (prefers-reduced-motion: no-preference) {
+  html:not(.no-animations) button,
+  html:not(.no-animations) a,
+  html:not(.no-animations) [role="button"],
+  html:not(.no-animations) [role="tab"],
+  html:not(.no-animations) [role="menuitem"] {
+    transition: transform 0.2s var(--ease-out),
+                box-shadow 0.25s var(--ease-out),
+                background-color 0.2s var(--ease-out),
+                color 0.2s var(--ease-out),
+                border-color 0.2s var(--ease-out),
+                opacity 0.2s var(--ease-out);
+  }
+  html:not(.no-animations) button:active,
+  html:not(.no-animations) [role="button"]:active { transform: scale(0.97); }
+
+  html:not(.no-animations) .stat-card,
+  html:not(.no-animations) [class*="card"] {
+    transition: transform 0.3s var(--ease-out), box-shadow 0.3s var(--ease-out), border-color 0.25s var(--ease-out);
+  }
+
+  /* Page enter animation for routed views */
+  html:not(.no-animations) main > * {
+    animation: appPageIn 0.45s var(--ease-out) both;
+  }
+  @keyframes appPageIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Inputs focus polish */
+  html:not(.no-animations) input,
+  html:not(.no-animations) textarea,
+  html:not(.no-animations) select {
+    transition: border-color 0.2s var(--ease-out), box-shadow 0.2s var(--ease-out), background-color 0.2s var(--ease-out);
+  }
+
+  /* Dialog & dropdown subtle entrance is already provided by Radix; reinforce */
+  html:not(.no-animations) [data-state="open"][data-radix-popper-content-wrapper] > * {
+    animation: appPopIn 0.18s var(--ease-out) both;
+  }
+  @keyframes appPopIn {
+    from { opacity: 0; transform: scale(0.96) translateY(-4px); }
+    to   { opacity: 1; transform: scale(1) translateY(0); }
+  }
+}
+
+/* ============== Scroll-reveal for home page sections & cards ============== */
+.qe-home [data-reveal] {
+  opacity: 0;
+  transform: translateY(28px);
+  transition: opacity 0.7s var(--ease-out), transform 0.7s var(--ease-out);
+  will-change: opacity, transform;
+}
+.qe-home [data-reveal="left"]  { transform: translateX(-32px); }
+.qe-home [data-reveal="right"] { transform: translateX(32px); }
+.qe-home [data-reveal="zoom"]  { transform: scale(0.94); }
+
+.qe-home [data-reveal].is-visible {
+  opacity: 1;
+  transform: translate(0,0) scale(1);
+}
+
+/* Auto-stagger children inside a revealed section */
+.qe-home section.is-visible > * > * { animation: qeChildIn 0.6s var(--ease-out) both; }
+.qe-home section.is-visible > * > *:nth-child(1) { animation-delay: 0.05s; }
+.qe-home section.is-visible > * > *:nth-child(2) { animation-delay: 0.12s; }
+.qe-home section.is-visible > * > *:nth-child(3) { animation-delay: 0.19s; }
+.qe-home section.is-visible > * > *:nth-child(4) { animation-delay: 0.26s; }
+.qe-home section.is-visible > * > *:nth-child(5) { animation-delay: 0.33s; }
+.qe-home section.is-visible > * > *:nth-child(6) { animation-delay: 0.40s; }
+.qe-home section.is-visible > * > *:nth-child(7) { animation-delay: 0.47s; }
+.qe-home section.is-visible > * > *:nth-child(8) { animation-delay: 0.54s; }
+@keyframes qeChildIn {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Disable inherited mount animation since reveal handles it now */
+.qe-home section { animation: none !important; }
