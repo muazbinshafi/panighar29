@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { useIsMobile } from "@/hooks/use-mobile";
 import NotificationsCenter from "@/components/NotificationsCenter";
 import { useOfflineSync } from "@/hooks/useOfflineSync";
+import { useDailyAutoBackup } from "@/hooks/useDailyAutoBackup";
 import { Badge } from "@/components/ui/badge";
 
 export default function AppLayout({ children }: { children: ReactNode }) {
@@ -28,6 +29,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
   };
   const desktopWidth = desktopCollapsed ? "4rem" : "16rem";
   const { isOnline, queueLength, syncing, syncQueue, lastSyncedAt } = useOfflineSync();
+  useDailyAutoBackup(!!user && !isGuest);
 
   const allNavItems = [
     { to: "/dashboard", icon: LayoutDashboard, label: "Dashboard", adminOnly: false },
